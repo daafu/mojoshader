@@ -671,6 +671,8 @@ static int impl_GLSL_CompileShader(const MOJOSHADER_parseData *pd, GLuint *s)
     const GLint codelen = (GLint) pd->output_len;
     const GLenum shader_type = glsl_shader_type(pd->shader_type);
 
+    printf("SHADER DUMP:\n%s\n", pd->output);
+
     if (ctx->have_opengl_2)
     {
         const GLuint shader = ctx->glCreateShader(shader_type);

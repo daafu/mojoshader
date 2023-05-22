@@ -489,6 +489,7 @@ static void prepend_glsl_texlod_extensions(Context *ctx)
     {
         ctx->glsl_generated_texlod_setup = 1;
         push_output(ctx, &ctx->preflight);
+        /*
         output_line(ctx, "#if GL_ARB_shader_texture_lod");
         output_line(ctx, "#extension GL_ARB_shader_texture_lod : enable");
         output_line(ctx, "#define texture2DGrad texture2DGradARB");
@@ -502,6 +503,7 @@ static void prepend_glsl_texlod_extensions(Context *ctx)
             output_line(ctx, "#define texture2DLod(a,b,c) texture2D(a,b)");
         output_line(ctx, "#endif");
         output_blank_line(ctx);
+        */
         pop_output(ctx);
     } // if
 } // prepend_glsl_texlod_extensions
@@ -539,12 +541,23 @@ void emit_GLSL_start(Context *ctx, const char *profilestr)
     {
         ctx->profile_supports_glsles = 1;
         push_output(ctx, &ctx->preflight);
-        output_line(ctx, "#version 100");
-        if (shader_is_vertex(ctx))
+
+        //output_line(ctx, "#version 100");
+        output_line(ctx, "#version 300 es");
+
+        output_line(ctx, "#define texture2DGrad(a,b,c,d) textureGrad(a,b,c,d)");
+        output_line(ctx, "#define texture2D(a,b) texture(a,b)");
+
+        if (shader_is_vertex(ctx)) {
             output_line(ctx, "precision highp float;");
-        else
+        }
+        else {
             output_line(ctx, "precision mediump float;");
+        }
+
         output_line(ctx, "precision mediump int;");
+        output_line(ctx, "out vec4 glFragColor;");
+
         pop_output(ctx);
     } // else if
     #endif
@@ -920,7 +933,7 @@ void emit_GLSL_attribute(Context *ctx, RegisterType regtype, int regnum,
         if (regtype == REG_TYPE_INPUT)
         {
             push_output(ctx, &ctx->globals);
-            output_line(ctx, "attribute vec4 %s;", var);
+            output_line(ctx, "in vec4 %s;", var);
             pop_output(ctx);
         } // if
 
@@ -944,10 +957,10 @@ void emit_GLSL_attribute(Context *ctx, RegisterType regtype, int regnum,
                         push_output(ctx, &ctx->globals);
 #if SUPPORT_PROFILE_GLSLES
                         if (support_glsles(ctx))
-                            output_line(ctx, "varying highp float io_%i_%i;", usage, index);
+                            output_line(ctx, "out highp float io_%i_%i;", usage, index);
                         else
 #endif
-                        output_line(ctx, "varying float io_%i_%i;", usage, index);
+                        output_line(ctx, "out float io_%i_%i;", usage, index);
                         output_line(ctx, "#define %s io_%i_%i", var, usage, index);
                         pop_output(ctx);
                         return;
@@ -982,10 +995,10 @@ void emit_GLSL_attribute(Context *ctx, RegisterType regtype, int regnum,
                         push_output(ctx, &ctx->globals);
 #if SUPPORT_PROFILE_GLSLES
                         if (support_glsles(ctx))
-                            output_line(ctx, "varying highp float io_%i_%i;", usage, index);
+                            output_line(ctx, "out highp float io_%i_%i;", usage, index);
                         else
 #endif
-                        output_line(ctx, "varying float io_%i_%i;", usage, index);
+                        output_line(ctx, "out float io_%i_%i;", usage, index);
                         output_line(ctx, "#define %s io_%i_%i", var, usage, index);
                         pop_output(ctx);
                         return;
@@ -1016,10 +1029,10 @@ void emit_GLSL_attribute(Context *ctx, RegisterType regtype, int regnum,
             {
 #if SUPPORT_PROFILE_GLSLES
                 if (support_glsles(ctx))
-                    output_line(ctx, "varying highp vec4 io_%i_%i;", usage, index);
+                    output_line(ctx, "out highp vec4 io_%i_%i;", usage, index);
                 else
 #endif
-                output_line(ctx, "varying vec4 io_%i_%i;", usage, index);
+                output_line(ctx, "out vec4 io_%i_%i;", usage, index);
                 output_line(ctx, "#define %s io_%i_%i", var, usage, index);
             } // if
             else
@@ -1048,8 +1061,10 @@ void emit_GLSL_attribute(Context *ctx, RegisterType regtype, int regnum,
 
         if (regtype == REG_TYPE_COLOROUT)
         {
-            if (!ctx->have_multi_color_outputs)
-                usage_str = "gl_FragColor";  // maybe faster?
+            if (!ctx->have_multi_color_outputs) {
+//                usage_str = "gl_FragColor";  // maybe faster?
+                usage_str = "glFragColor";  // maybe faster?
+            }
             else
             {
                 snprintf(index_str, sizeof (index_str), "%u", (uint) regnum);
@@ -1145,10 +1160,10 @@ void emit_GLSL_attribute(Context *ctx, RegisterType regtype, int regnum,
         {
 #if SUPPORT_PROFILE_GLSLES
             if (support_glsles(ctx))
-                output_line(ctx, "varying highp vec4 io_%i_%i;", usage, index);
+                output_line(ctx, "in highp vec4 io_%i_%i;", usage, index);
             else
 #endif
-            output_line(ctx, "varying vec4 io_%i_%i;", usage, index);
+            output_line(ctx, "in vec4 io_%i_%i;", usage, index);
             output_line(ctx, "#define %s io_%i_%i", var, usage, index);
         } // if
         else
